@@ -26,13 +26,14 @@ def process(chunks):
     col = -1
     cols = list(list() for i in range(6))
     for lines in chunks:
+        print(lines)
+        print(f"col={col}")
+        print(f"cols={cols}")
         if lines == START_LINE:
-            print("starting")
             col = 0
         elif col >= 0:
             try:
                 segment = parse(lines)
-                print("segment is", segment)
             except ValueError:
                 sofar = [TaxRow(*i) for i in zip(*cols)]
                 print(sofar)
@@ -40,10 +41,9 @@ def process(chunks):
                 col = -1
                 cols = list(list() for i in range(6))
             else:
-                if segment[0] > cols[col][-1]:
-                    cols[col].extend(segment)
-                else:
+                if cols[col] and segment[0] < cols[col][-1]:
                     col += 1
+                cols[col].extend(segment)
 
 def main(filename='2019/i1040tt.pdf'):
     params = LAParams(
