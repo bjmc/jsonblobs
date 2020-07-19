@@ -26,14 +26,18 @@ def process(chunks):
     col = -1
     cols = list(list() for i in range(6))
     for lines in chunks:
-        print(lines)
-        print(f"col={col}")
-        print(f"cols={cols}")
+        print(repr(lines))
+        #print(f"col={col}")
+        #print(f"cols={cols}")
         if lines == START_LINE:
+            #from pdb import set_trace; set_trace()
             col = 0
         elif col >= 0:
             try:
                 segment = parse(lines)
+                # Skip the big "header" text items
+                if len(segment) == 1:
+                    continue
             except ValueError:
                 sofar = [TaxRow(*i) for i in zip(*cols)]
                 print(sofar)
@@ -47,17 +51,20 @@ def process(chunks):
 
 def main(filename='2019/i1040tt.pdf'):
     params = LAParams(
-        line_overlap=0.5,
+        line_overlap=0.7,
         char_margin=1.0,
-        line_margin=0.3,
-        word_margin=0.2,
-        boxes_flow=-0.5,
+        line_margin=0.1,
+        word_margin=0.3,
+        boxes_flow=None,
+        #boxes_flow=0.2,
         detect_vertical=False,
         all_texts=False,
     )
     raw = extract_text(filename, page_numbers=range(2, 14), caching=True, laparams=params)
     chunks = raw.split('\n\n')
-    return list(process(chunks))
+    return chunks
 
 if __name__ == '__main__':
+    from pprint import pprint
     chunks = main()
+    pprint(chunks)
