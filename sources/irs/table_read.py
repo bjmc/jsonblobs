@@ -9,7 +9,12 @@ COLUMNS = ('lower', 'upper', 'single', 'married_joint', 'married_separate', 'hea
 TaxRow = namedtuple('TaxRow', COLUMNS)
 
 def clean_and_concat(segments):
-    pass
+    for t in segments:
+        t.columns = COLUMNS
+    merged = pd.concat(segments, axis=0)
+    merged.replace('', np.nan, inplace=True)
+    merged.dropna(inplace=True)
+    return merged.apply(lambda x: x.str.replace(',', '')).astype(int)
 
 def process_pageN(df):
     rows = (slice(1, 21), slice(22, 42), slice(43, 63))
@@ -18,45 +23,40 @@ def process_pageN(df):
     for c in columns:
         for r in rows:
             segments.append(df.iloc[r, c])
-    for t in segments:
-        t.columns = COLUMNS
-    merged = pd.concat(segments, axis=0)
-    return merged.apply(lambda x: x.str.replace(',', '')).astype(int)
+    return clean_and_concat(segments)
 
 def process_page1(df):
     t1 = df.iloc[0:62, 0:6]
     t2 = df.iloc[5:62, 6:12]
     t3 = df.iloc[5:62, 12:18]
-    for t in (t1, t2, t3):
-        t.columns = COLUMNS
-    merged = pd.concat((t1, t2, t3), axis=0)
-    merged.replace('', np.nan, inplace=True)
-    merged.dropna(inplace=True)
-    return merged.apply(lambda x: x.str.replace(',', '')).astype(int)
+    segments = (t1, t2, t3)
+    return clean_and_concat(segments)
 
 def process_page14(df):
     subsets = (
-        (slice(5, 25), slice(0, 6)),
-        (slice(5, 25), slice(6, 12)),
-        (slice(5, 25), slice(12, 18)),
-        (slice(27, 47), slice(0, 6)),
-        (slice(27, 47), slice(6, 12)),
-        (slice(48, 68), slice(0, 6)),
-        (slice(48, 68), slice(6, 12)),
+        (slice(5, 25), slice(0, 6)),  # 93,000
+        (slice(27, 47), slice(0, 6)),  # 94,000
+        (slice(48, 68), slice(0, 6)),  # 95,000
+        (slice(5, 25), slice(6, 12)),  # 96,000
+        (slice(27, 47), slice(6, 12)),  # 97,000
+        (slice(48, 68), slice(6, 12)),  # 98,000
+        (slice(5, 25), slice(12, 18)),  # 99,000
     )
     segments = []
     for rows, columns in subsets:
         segments.append(df.iloc[rows, columns])
-    for t in segments:
-        t.columns = COLUMNS
-    merged = pd.concat(segments, axis=0)
-    return merged.apply(lambda x: x.str.replace(',', '')).astype(int)
-
+    return clean_and_concat(segments)
 
 def get_tables(filename='i1040tt.pdf'):
     tables = camelot.read_pdf(filename, flavor='stream', pages='3-14')
-    page1 = process_page1(tables[1])
-    normals = [process_pageN(t) for t in tables[2:11]]
+    return tables
+
+def reformat(tables):
+    page1 = process_page1(tables[1].df)
+    normals = [process_pageN(t.df) for t in tables[2:11]]
     cols = sorted(set(range(0, 21)).difference({5, 12, 19}))
     page13 = process_pageN(tables[11].df.iloc[4:, cols])
     page14 = process_page14(tables[12].df)
+    total = [page1] + normals + [page13, page14]
+    final = pd.concat(total, axis=0)
+    return final.reset_index(drop=True)
