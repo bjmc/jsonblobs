@@ -1,12 +1,9 @@
 import camelot
 
-from collections import namedtuple
 import pandas as pd
 import numpy as np
 
 COLUMNS = ('lower', 'upper', 'single', 'married_joint', 'married_separate', 'head_of_household')
-
-TaxRow = namedtuple('TaxRow', COLUMNS)
 
 def clean_and_concat(segments):
     for t in segments:
@@ -33,14 +30,16 @@ def process_page1(df):
     return clean_and_concat(segments)
 
 def process_page14(df):
+	top, mid, bottom = slice(5, 25), slice(27, 47), slice(48, 68)
+	left, center, right = slice(0, 6), slice(6, 12), slice(12. 18)
     subsets = (
-        (slice(5, 25), slice(0, 6)),  # 93,000
-        (slice(27, 47), slice(0, 6)),  # 94,000
-        (slice(48, 68), slice(0, 6)),  # 95,000
-        (slice(5, 25), slice(6, 12)),  # 96,000
-        (slice(27, 47), slice(6, 12)),  # 97,000
-        (slice(48, 68), slice(6, 12)),  # 98,000
-        (slice(5, 25), slice(12, 18)),  # 99,000
+        (top, left),  # 93,000
+        (mid, left),  # 94,000
+        (bottom, left),  # 95,000
+        (top, center),  # 96,000
+        (mid, center),  # 97,000
+        (bottom, center),  # 98,000
+        (top, right),  # 99,000
     )
     segments = []
     for rows, columns in subsets:
